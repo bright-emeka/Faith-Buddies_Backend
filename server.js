@@ -1,28 +1,15 @@
-// Main Express server
-import 'express-async-errors';
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import mongoose from 'mongoose'; // 👈 1. IMPORT MONGOOSE
-
-// ES Module path fixes
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Import Routes
-import chatRoutes from './routes/chat.js';
-import usersRoutes from './routes/users.js';
-import postsRoutes from './routes/posts.js';
-import interactionsRoutes from './routes/interactions.js';
-import followsRoutes from './routes/follows.js';
-
-dotenv.config();
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const path = require('path');
+const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Load environment variables
+dotenv.config();
 
 // 🔌 2. CONNECT TO MONGO_DB ATLAS
 mongoose.connect(process.env.MONGO_URI)
@@ -34,11 +21,30 @@ mongoose.connect(process.env.MONGO_URI)
   });
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+// CORS configuration
+const allowedOrigins = [];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+// Allow localhost:3000 in development (non-production)
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000');
+}
+
+const corsOptions = {
+  origin: allowedOrigins,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Import Routes
+const chatRoutes = require('./routes/chat');
+const usersRoutes = require('./routes/users');
+const postsRoutes = require('./routes/posts');
+const interactionsRoutes = require('./routes/interactions');
+const followsRoutes = require('./routes/follows');
 
 // API Routes
 app.use('/api/chat', chatRoutes);
@@ -53,6 +59,7 @@ app.get('/health', (req, res) => {
 });
 
 // --- SERVE FRONTEND FROM LOCAL STANDALONE REPO ---
+const __dirname = path.resolve();
 const frontendPath = path.join(__dirname, 'frontend');
 const distPath = path.join(frontendPath, 'dist');
 const buildPath = path.join(frontendPath, 'build');
