@@ -4,6 +4,7 @@ import { verifyToken } from '../middleware/auth.js';
 import { Post, User, Follow, Comment, Like } from '../models/index.js';
 
 const router = express.Router();
+//
 
 // Create a new post
 router.post('/profile', verifyToken, async (req, res) => {
