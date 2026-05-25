@@ -1,7 +1,7 @@
 {
   "name": "bible-social",
   "version": "1.0.0",
-  "description": "Fullstack Bible Social app",
+  "description": "Fullstack Social app",
   "type": "module",
   "main": "server.js",
   "scripts": {

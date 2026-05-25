@@ -52,16 +52,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
 });
 
-// --- SERVE FRONTEND (Optimized Monorepo Fix) ---
-const currentDir = process.cwd();
-
-// Robust root detection: 
-// Ensures we find 'frontend' whether started from / or /backend
-const rootDir = currentDir.endsWith('backend') 
-  ? path.resolve(currentDir, '..') 
-  : currentDir;
-
-const frontendPath = path.join(rootDir, 'frontend');
+// --- SERVE FRONTEND FROM LOCAL STANDALONE REPO ---
+const frontendPath = path.join(__dirname, 'frontend');
 const distPath = path.join(frontendPath, 'dist');
 const buildPath = path.join(frontendPath, 'build');
 
@@ -79,10 +71,10 @@ if (fs.existsSync(staticPath)) {
 } else {
   // Graceful logs based on environment
   if (process.env.NODE_ENV === 'production') {
-    console.error('❌ ERROR: No frontend build folder found.');
+    console.error('❌ ERROR: No frontend build folder found in standalone backend repo.');
     console.log('Targeted path:', staticPath);
   } else {
-    console.log('ℹ️ Local Dev Mode: API is live. Frontend is served by Vite (Port 3000).');
+    console.log('ℹ️ Local Dev Mode: API is live. Frontend is served by Vite on a separate process.');
   }
 }
 
