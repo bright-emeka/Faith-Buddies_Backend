@@ -2,7 +2,7 @@
   "name": "bible-social",
   "version": "1.0.0",
   "description": "Fullstack Social app",
-  "type": "commonjs",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
