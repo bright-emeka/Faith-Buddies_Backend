@@ -1,9 +1,16 @@
 import express from 'express';
 import cors from 'cors';
-const dotenv = require('dotenv');
-const path = require('path');
-const fs = require('fs');
-const mongoose = require('mongoose');
+import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import mongoose from 'mongoose';
+
+// Import Routes (Note the mandatory '.js' extensions for ES Modules)
+import chatRoutes from './routes/chat.js';
+import usersRoutes from './routes/users.js';
+import postsRoutes from './routes/posts.js';
+import interactionsRoutes from './routes/interactions.js';
+import followsRoutes from './routes/follows.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,13 +46,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Import Routes
-const chatRoutes = require('./routes/chat');
-const usersRoutes = require('./routes/users');
-const postsRoutes = require('./routes/posts');
-const interactionsRoutes = require('./routes/interactions');
-const followsRoutes = require('./routes/follows');
-
 // API Routes
 app.use('/api/chat', chatRoutes);
 app.use('/api/users', usersRoutes);
@@ -78,8 +78,7 @@ if (fs.existsSync(staticPath)) {
 } else {
   // Graceful logs based on environment
   if (process.env.NODE_ENV === 'production') {
-    console.error('❌ ERROR: No frontend build folder found in standalone backend repo.');
-    console.log('Targeted path:', staticPath);
+    console.log('ℹ️ Standalone Mode: No local frontend folder found. Serving API endpoints exclusively.');
   } else {
     console.log('ℹ️ Local Dev Mode: API is live. Frontend is served by Vite on a separate process.');
   }
@@ -95,6 +94,6 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Faith Buddies API active on port ${PORT}`); // Swapped log name to match your new branding! 😄
+  console.log(`🚀 Faith Buddies API active on port ${PORT}`);
   console.log('Environment:', process.env.NODE_ENV || 'development');
 });
