@@ -8,7 +8,7 @@ const verifyToken = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       if (process.env.NODE_ENV !== 'production') {
         console.warn('⚠️ DEV MODE: Bypassing auth with dev-user-demo');
-        req.userId = 'dev-user-demo'; 
+        req.user = { uid: 'dev-user-demo', email: 'dev@example.com' }; 
         return next();
       }
       return res.status(401).json({ error: 'Unauthorized: No token provided' });
@@ -19,14 +19,14 @@ const verifyToken = async (req, res, next) => {
     // 2. Verify the token
     try {
       const decodedToken = await auth.verifyIdToken(token);
-      req.userId = decodedToken.uid;
-      console.log('✅ Auth success, UID:', req.userId);
+      req.user = decodedToken;
+      console.log('✅ Auth success, UID:', decodedToken.uid);
       next();
     } catch (verifyError) {
       // 3. Dev mode fallback for specific token
       if (process.env.NODE_ENV !== 'production' && token === 'dev-token') {
         console.warn('⚠️ DEV MODE: Using dev token fallback');
-        req.userId = 'dev-user-demo';
+        req.user = { uid: 'dev-user-demo', email: 'dev@example.com' };
         return next();
       }
       

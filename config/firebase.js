@@ -115,7 +115,7 @@ try {
   };
 
   auth = {
-    verifyIdToken: async () => ({ uid: 'dev-user' }),
+    verifyIdToken: async () => ({ uid: 'dev-user', email: 'dev@example.com' }),
   };
 }
 
