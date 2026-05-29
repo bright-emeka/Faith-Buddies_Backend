@@ -3,35 +3,36 @@ import express from 'express';
 import { verifyToken } from '../middleware/auth.js';
 const router = express.Router();
 
-router.post('/sync', async (req, res) => {
+router.post('/sync', verifyToken, async (req, res) => {
   try {
-    const { firebaseUid, email, name, avatar, religion } = req.body;
+    const { uid: firebaseUid, email: tokenEmail } = req.user;
+    const { name, email, bio, avatar, religion } = req.body;
 
-    if (!firebaseUid || !email) {
-      return res.status(400).json({ error: 'firebaseUid and email are required' });
+    if (!firebaseUid) {
+      return res.status(400).json({ error: 'Firebase UID not found in token' });
     }
 
-    console.log("DEBUG: Syncing user with Firebase UID:", firebaseUid);
+    const userEmail = email || tokenEmail || '';
+    const finalName = name || userEmail.split('@')[0] || 'New Believer';
+    const finalAvatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(finalName)}&background=random`;
 
-    const defaultName = name || email.split('@')[0] || 'New Believer';
-    const defaultAvatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(defaultName)}&background=random`;
+    const updateData = {
+      firebaseUid,
+      uid: firebaseUid,
+      name: finalName,
+      email: userEmail,
+      avatar: finalAvatar,
+      religion: religion || 'Christian',
+      bio: bio || 'Faithful believer sharing wisdom and inspiration',
+    };
 
-    let user = await User.findOne({ firebaseUid });
+    const user = await User.findOneAndUpdate(
+      { firebaseUid },
+      { $set: updateData },
+      { new: true, upsert: true, runValidators: true }
+    );
 
-    if (!user) {
-      user = await User.create({
-        firebaseUid,
-        uid: firebaseUid,
-        name: defaultName,
-        email,
-        avatar: defaultAvatar,
-        religion: religion || 'Christian',
-      });
-      console.log(`✨ Created new user profile for UID: ${firebaseUid}`);
-    } else {
-      console.log(`✅ Found existing user profile for UID: ${firebaseUid}`);
-    }
-
+    console.log(`✨ Profile synced for Firebase UID: ${firebaseUid}`);
     res.json(user);
   } catch (error) {
     console.error('Error syncing user profile:', error);
@@ -41,7 +42,7 @@ router.post('/sync', async (req, res) => {
 
 router.get('/profile', verifyToken, async (req, res) => {
   try {
-    const firebaseUid = req.user.uid;
+    const { uid: firebaseUid } = req.user;
 
     console.log("DEBUG: Fetching profile for UID:", firebaseUid);
 
@@ -60,7 +61,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 
 router.post('/profile', verifyToken, async (req, res) => {
   try {
-    const firebaseUid = req.user.uid;
+    const { uid: firebaseUid } = req.user;
     const { name, email, bio, avatar, religion } = req.body;
 
     console.log("DEBUG: Upserting user with UID:", firebaseUid);
