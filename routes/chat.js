@@ -127,8 +127,8 @@ router.post('/message', verifyToken, async (req, res) => {
     let chatDoc = await Chat.findOne({ userId });
     let chatMessages = chatDoc ? chatDoc.messages || [] : [];
 
-    // Limit chat history to last 20 messages to prevent unbounded growth and token limits
-    const MAX_MESSAGES = 20;
+    // Limit chat history to last 8 messages to prevent payload size limits
+    const MAX_MESSAGES = 8;
     if (chatMessages.length > MAX_MESSAGES) {
       chatMessages = chatMessages.slice(-MAX_MESSAGES);
     }
@@ -154,7 +154,7 @@ router.post('/message', verifyToken, async (req, res) => {
     // Call Gemini API with timeout
     console.log('📡 Sending request to Gemini API...');
     const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://googleapis.com${process.env.GEMINI_API_KEY}`,
       {
         contents: [
           {
