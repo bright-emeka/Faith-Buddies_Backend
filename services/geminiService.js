@@ -115,3 +115,4 @@ export const generateGeminiResponse = async ({
     throw error;
   }
 };
+
