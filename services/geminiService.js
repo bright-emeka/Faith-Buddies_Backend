@@ -3,7 +3,9 @@ import axiosRetry from 'axios-retry';
 
 axiosRetry(axios, {
   retries: 3,
+
   retryDelay: axiosRetry.exponentialDelay,
+
   retryCondition: (error) => {
     return (
       error.code === 'ECONNABORTED' ||
@@ -17,10 +19,18 @@ const GEMINI_URL =
 
 export const generateGeminiResponse = async ({
   message,
-  history,
+  history = [],
   systemPrompt,
 }) => {
   try {
+    console.log('=========== GEMINI REQUEST ===========');
+
+    console.log('API KEY EXISTS:', !!process.env.GEMINI_API_KEY);
+
+    console.log('MESSAGE:', message);
+
+    console.log('HISTORY LENGTH:', history.length);
+
     const response = await axios.post(
       GEMINI_URL,
       {
@@ -36,6 +46,7 @@ export const generateGeminiResponse = async ({
           ...history,
           {
             role: 'user',
+
             parts: [
               {
                 text: message,
@@ -50,25 +61,6 @@ export const generateGeminiResponse = async ({
           topK: 40,
           maxOutputTokens: 1000,
         },
-
-        safetySettings: [
-          {
-            category: 'HARM_CATEGORY_HATE_SPEECH',
-            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-          },
-          {
-            category: 'HARM_CATEGORY_HARASSMENT',
-            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-          },
-          {
-            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-          },
-          {
-            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-          },
-        ],
       },
       {
         headers: {
@@ -80,20 +72,45 @@ export const generateGeminiResponse = async ({
       }
     );
 
+    console.log(
+      'FULL GEMINI RESPONSE:',
+      JSON.stringify(response.data, null, 2)
+    );
+
     const aiMessage =
       response?.data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!aiMessage) {
+      console.log('NO AI MESSAGE FOUND');
+
+      console.log(
+        'Candidates:',
+        JSON.stringify(response?.data?.candidates, null, 2)
+      );
+
       throw new Error('Empty response from Gemini');
     }
 
+    console.log('=========== GEMINI SUCCESS ===========');
+
     return aiMessage;
   } catch (error) {
-    console.error('Gemini Service Error:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-    });
+    console.error('=========== GEMINI ERROR ===========');
+
+    console.error('MESSAGE:', error.message);
+
+    console.error('CODE:', error.code);
+
+    if (error.response) {
+      console.error('STATUS:', error.response.status);
+
+      console.error(
+        'DATA:',
+        JSON.stringify(error.response.data, null, 2)
+      );
+    }
+
+    console.error('=====================================');
 
     throw error;
   }
