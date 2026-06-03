@@ -1,16 +1,15 @@
 // Posts routes - handles creating, reading, and managing posts with corrected Firebase UIDs
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
+import { authenticate } from '../middleware/jwtAuth.js';
 import { Post, User, Follow, Comment, Like } from '../models/index.js';
 
 const router = express.Router();
-//
 
 // Create a new post
-router.post('/profile', verifyToken, async (req, res) => {
+router.post('/profile', authenticate, async (req, res) => {
   try {
-    const { userId } = req; // Extracted from verifyToken middleware
-    console.log('DEBUG: Incoming profile request for Firebase UID:', userId); // 👈 ADD THIS LOG
+    const { uid: userId } = req.user;
+    console.log('DEBUG: Incoming profile request for Firebase UID:', userId);
     const { name, email, bio, avatar, religion } = req.body;
 
     if (!content || !content.trim()) {
@@ -18,12 +17,11 @@ router.post('/profile', verifyToken, async (req, res) => {
     }
 
     const post = await Post.create({
-      userId, // Storing Firebase UID as the owner identifier
+      userId,
       content: content.trim(),
       image: image || null,
     });
 
-    // ⚡ FIX: Use findOneAndUpdate matching 'uid', not findById
     await User.findOneAndUpdate({ uid: userId }, { $inc: { postsCount: 1 } });
 
     res.status(201).json(post);
@@ -34,9 +32,9 @@ router.post('/profile', verifyToken, async (req, res) => {
 });
 
 // Get feed for current user (posts from followed users + own posts)
-router.get('/feed', verifyToken, async (req, res) => {
+router.get('/feed', authenticate, async (req, res) => {
   try {
-    const { userId } = req;
+    const { uid: userId } = req.user;
     const lastTimestamp = req.query.lastTimestamp ? new Date(req.query.lastTimestamp) : undefined;
 
     const followDocs = await Follow.find({ followerId: userId }).select('followingId');
@@ -54,7 +52,6 @@ router.get('/feed', verifyToken, async (req, res) => {
 
     const userIds = [...new Set(posts.map((post) => post.userId))];
     
-    // ⚡ FIX: Look up users by matching their 'uid' array, not native '_id'
     const users = await User.find({ uid: { $in: userIds } }).lean();
     const usersMap = new Map(users.map((user) => [user.uid, user]));
 
@@ -101,7 +98,6 @@ router.get('/:postId', async (req, res) => {
       return res.status(404).json({ error: 'Post not found' });
     }
 
-    // ⚡ FIX: Find the author user doc matching 'uid'
     const author = await User.findOne({ uid: post.userId }).lean();
     
     const comments = await Comment.find({ postId: post._id })
@@ -110,7 +106,6 @@ router.get('/:postId', async (req, res) => {
 
     const commentUserIds = [...new Set(comments.map((comment) => comment.userId))];
     
-    // ⚡ FIX: Find comment authors by 'uid'
     const commentUsers = await User.find({ uid: { $in: commentUserIds } }).lean();
     const commentUsersMap = new Map(commentUsers.map((user) => [user.uid, user]));
 
@@ -129,10 +124,10 @@ router.get('/:postId', async (req, res) => {
 });
 
 // Delete post (only by author)
-router.delete('/:postId', verifyToken, async (req, res) => {
+router.delete('/:postId', authenticate, async (req, res) => {
   try {
     const { postId } = req.params;
-    const { userId } = req;
+    const { uid: userId } = req.user;
 
     const post = await Post.findById(postId);
     if (!post) {

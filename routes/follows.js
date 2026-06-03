@@ -1,20 +1,18 @@
 // Follows routes - handles user following relationships with corrected uid lookups
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
+import { authenticate } from '../middleware/jwtAuth.js';
 import { User, Follow } from '../models/index.js';
 
 const router = express.Router();
 
-// ⚡ FIX: Helper function to check if user exists by matching 'uid' field
 const userExists = async (userId) => {
   return User.exists({ uid: userId });
 };
 
-// Follow a user
-router.post('/:targetUserId/follow', verifyToken, async (req, res) => {
+router.post('/:targetUserId/follow', authenticate, async (req, res) => {
   try {
-    const { targetUserId } = req.params; // The Firebase UID of user to follow
-    const { userId: followerId } = req;  // Your Firebase UID from auth middleware
+    const { targetUserId } = req.params;
+    const { uid: followerId } = req.user;
 
     if (targetUserId === followerId) {
       return res.status(400).json({ error: 'Cannot follow yourself' });
@@ -63,10 +61,10 @@ router.post('/:targetUserId/follow', verifyToken, async (req, res) => {
 });
 
 // Check if following
-router.get('/status/:targetUserId/following', verifyToken, async (req, res) => {
+router.get('/status/:targetUserId/following', authenticate, async (req, res) => {
   try {
     const { targetUserId } = req.params;
-    const { userId } = req;
+    const { uid: userId } = req.user;
 
     const [currentUserExists, targetExists] = await Promise.all([
       userExists(userId),

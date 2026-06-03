@@ -3,7 +3,7 @@ import express from 'express';
 import Chat from '../models/Chat.js';
 import User from '../models/User.js';
 
-import { verifyToken } from '../middleware/auth.js';
+import { authenticate } from '../middleware/jwtAuth.js';
 
 import { generateGeminiResponse } from '../services/geminiService.js';
 import { getSystemPrompt } from '../utils/prompts.js';
@@ -13,7 +13,7 @@ const router = express.Router();
 const MAX_HISTORY = 20;
 const MAX_MESSAGE_LENGTH = 4000;
 
-router.post('/message', verifyToken, async (req, res) => {
+router.post('/message', authenticate, async (req, res) => {
   try {
     const { message, userId } = req.body;
 
@@ -36,7 +36,7 @@ router.post('/message', verifyToken, async (req, res) => {
       });
     }
 
-    if (userId !== req.userId) {
+    if (userId !== req.user.uid) {
       return res.status(403).json({
         error: 'Unauthorized',
       });
@@ -146,11 +146,11 @@ router.post('/message', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/history/:userId', verifyToken, async (req, res) => {
+router.get('/history/:userId', authenticate, async (req, res) => {
   try {
     const { userId } = req.params;
 
-    if (userId !== req.userId) {
+    if (userId !== req.user.uid) {
       return res.status(403).json({
         error: 'Unauthorized',
       });

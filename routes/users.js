@@ -1,9 +1,9 @@
 import User from '../models/User.js';
 import express from 'express';
-import { verifyToken } from '../middleware/auth.js';
+import { authenticate } from '../middleware/jwtAuth.js';
 const router = express.Router();
 
-router.post('/sync', verifyToken, async (req, res) => {
+router.post('/sync', authenticate, async (req, res) => {
   try {
     const { uid: firebaseUid, email: tokenEmail } = req.user;
     const { name, email, bio, avatar, religion } = req.body;
@@ -40,13 +40,11 @@ router.post('/sync', verifyToken, async (req, res) => {
   }
 });
 
-router.get('/profile', verifyToken, async (req, res) => {
+router.get('/profile', authenticate, async (req, res) => {
   try {
-    const { uid: firebaseUid } = req.user;
+    const { uid: userId } = req.user;
 
-    console.log("DEBUG: Fetching profile for UID:", firebaseUid);
-
-    const user = await User.findOne({ firebaseUid });
+    const user = await User.findOne({ uid: userId });
 
     if (!user) {
       return res.status(404).json({ error: 'User profile not found' });
@@ -59,21 +57,19 @@ router.get('/profile', verifyToken, async (req, res) => {
   }
 });
 
-router.post('/profile', verifyToken, async (req, res) => {
+router.post('/profile', authenticate, async (req, res) => {
   try {
-    const { uid: firebaseUid } = req.user;
+    const { uid: userId } = req.user;
     const { name, email, bio, avatar, religion } = req.body;
-
-    console.log("DEBUG: Upserting user with UID:", firebaseUid);
 
     const defaultName = name || 'New Believer';
     const defaultAvatar = avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(defaultName)}&background=random`;
 
     const user = await User.findOneAndUpdate(
-      { firebaseUid },
+      { uid: userId },
       { 
         $setOnInsert: { 
-          uid: firebaseUid,
+          uid: userId,
           name: defaultName,
           email: email || '',
           avatar: defaultAvatar,
@@ -90,7 +86,6 @@ router.post('/profile', verifyToken, async (req, res) => {
       }
     );
 
-    console.log(`✨ Success! Profile synced for UID: ${firebaseUid}`);
     res.json(user);
 
   } catch (error) {

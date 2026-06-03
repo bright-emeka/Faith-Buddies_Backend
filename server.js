@@ -4,8 +4,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import mongoose from 'mongoose';
+import cookieParser from 'cookie-parser';
+import { apiLimiter } from './middleware/rateLimiter.js';
 
-// Import Routes (Note the mandatory '.js' extensions for ES Modules)
+import authRoutes from './routes/auth.js';
 import chatRoutes from './routes/chat.js';
 import usersRoutes from './routes/users.js';
 import postsRoutes from './routes/posts.js';
@@ -33,20 +35,25 @@ const allowedOrigins = [];
 if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
-// Allow localhost:3000 in development (non-production)
 if (process.env.NODE_ENV !== 'production') {
   allowedOrigins.push('http://localhost:3000');
 }
 
 const corsOptions = {
   origin: allowedOrigins,
-  optionsSuccessStatus: 200
+  credentials: true,
+  optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
+
+// Rate limiting
+app.use('/api', apiLimiter);
 
 // API Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/posts', postsRoutes);
