@@ -21,7 +21,7 @@ export const register = async (req, res, next) => {
 
     const uid = `user_${generateToken(16)}`;
 
-    const user = await User.create({
+    const user = new User({
       uid,
       email,
       name,
@@ -31,6 +31,8 @@ export const register = async (req, res, next) => {
       emailVerificationExpires,
       authProvider: 'native',
     });
+
+    await user.save();
 
     const accessToken = generateAccessToken(user.uid);
     const refreshToken = generateRefreshToken(user.uid);
