@@ -22,6 +22,7 @@ export const register = async (req, res, next) => {
     const uid = `user_${generateToken(16)}`;
 
     const user = new User({
+      _id: new mongoose.Types.ObjectId(),
       uid,
       email,
       name,
