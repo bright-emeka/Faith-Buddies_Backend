@@ -14,7 +14,7 @@ import { authLimiter, registerLimiter, passwordResetLimiter, apiLimiter } from '
 
 const router = express.Router();
 
-router.post('/register', registerLimiter, register);
+router.post('/register', register);
 router.post('/login', authLimiter, login);
 router.post('/verify-email', verifyEmail);
 router.post('/forgot-password', passwordResetLimiter, forgotPassword);
