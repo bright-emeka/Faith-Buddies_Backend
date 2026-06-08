@@ -31,23 +31,27 @@ mongoose.connect(process.env.MONGO_URI)
 
 // Middleware
 // CORS configuration
-const allowedOrigins = [];
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-if (process.env.NODE_ENV !== 'production') {
-  allowedOrigins.push('http://localhost:3000');
-}
+
+const app = express();
+const allowedOrigins = [
+  'https://faith-buddies-frontend.vercel.app', 
+  'http://localhost:3000'
+];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(cookieParser());
+
 
 // Rate limiting
 app.use('/api', apiLimiter);
