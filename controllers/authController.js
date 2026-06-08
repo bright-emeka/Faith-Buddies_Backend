@@ -4,10 +4,10 @@ import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '.
 
 export const register = async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, religion } = req.body;
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ message: 'Email, password, and name are required' });
+   if (!email || !password || !name || !religion) {
+      return res.status(400).json({ message: 'Email, password, name, and religion are required' });
     }
 
     const existingUser = await User.findOne({ email });
@@ -26,6 +26,7 @@ export const register = async (req, res, next) => {
       email,
       name,
       passwordHash,
+      religion,
       emailVerified: false,
       emailVerificationToken,
       emailVerificationExpires,
