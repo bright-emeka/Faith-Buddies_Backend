@@ -20,7 +20,9 @@ router.get('/search', async (req, res) => {
       .limit(50)
       .lean();
 
-    res.json(users);
+    // Keep response shape consistent with frontend expectations.
+    res.json({ users });
+
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Failed to search users', details: error.message });
