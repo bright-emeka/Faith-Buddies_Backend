@@ -71,7 +71,8 @@ router.get('/profile', authenticate, async (req, res) => {
   try {
     const { uid: userId } = req.user;
 
-    const user = await User.findOne({ uid: userId });
+    const user = await User.findOne({ uid: userId })
+      .select('-passwordHash -emailVerificationToken -passwordResetToken');
 
     if (!user) {
       return res.status(404).json({ error: 'User profile not found' });
@@ -83,6 +84,27 @@ router.get('/profile', authenticate, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch user profile', details: error.message });
   }
 });
+
+// GET /api/users/profile/:uid
+// Public profile fetch by uid
+router.get('/profile/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    const user = await User.findOne({ uid })
+      .select('-passwordHash -emailVerificationToken -passwordResetToken');
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile by uid:', error);
+    res.status(500).json({ error: 'Failed to fetch user profile', details: error.message });
+  }
+});
+
 
 router.post('/profile', authenticate, async (req, res) => {
   try {
