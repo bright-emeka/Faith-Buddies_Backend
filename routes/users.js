@@ -3,6 +3,31 @@ import express from 'express';
 import { authenticate } from '../middleware/jwtAuth.js';
 const router = express.Router();
 
+// GET /api/users/search?query=...
+// Searches users by name using a case-insensitive regex.
+router.get('/search', async (req, res) => {
+  try {
+    const query = (req.query.query || '').toString().trim();
+    if (!query) {
+      return res.status(400).json({ error: 'Query is required' });
+    }
+
+    const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(safeQuery, 'i');
+
+    const users = await User.find({ name: regex })
+      .select('uid name avatar religion followersCount followingCount')
+      .limit(50)
+      .lean();
+
+    res.json(users);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Failed to search users', details: error.message });
+  }
+});
+
+
 router.post('/sync', authenticate, async (req, res) => {
   try {
     const { uid: firebaseUid, email: tokenEmail } = req.user;

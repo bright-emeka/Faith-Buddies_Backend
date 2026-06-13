@@ -9,6 +9,44 @@ const userExists = async (userId) => {
   return User.exists({ uid: userId });
 };
 
+// Strict follow: POST /api/follows/follow/:uid
+router.post('/follow/:uid', authenticate, async (req, res) => {
+  try {
+    const { uid: followerId } = req.user;
+    const { uid: targetUserId } = req.params;
+
+    if (targetUserId === followerId) {
+      return res.status(400).json({ error: 'Cannot follow yourself' });
+    }
+
+    const [followerExists, targetExists] = await Promise.all([
+      userExists(followerId),
+      userExists(targetUserId),
+    ]);
+
+    if (!followerExists || !targetExists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const existingFollow = await Follow.findOne({ followerId, followingId: targetUserId });
+    if (existingFollow) {
+      return res.json({ following: true, message: 'User already followed' });
+    }
+
+    await Promise.all([
+      Follow.create({ followerId, followingId: targetUserId }),
+      User.findOneAndUpdate({ uid: followerId }, { $inc: { followingCount: 1 } }),
+      User.findOneAndUpdate({ uid: targetUserId }, { $inc: { followersCount: 1 } }),
+    ]);
+
+    res.json({ following: true, message: 'User followed' });
+  } catch (error) {
+    console.error('Error following user:', error);
+    res.status(500).json({ error: 'Failed to follow user' });
+  }
+});
+
+// Existing toggle endpoint kept for backward compatibility
 router.post('/:targetUserId/follow', authenticate, async (req, res) => {
   try {
     const { targetUserId } = req.params;
