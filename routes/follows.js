@@ -9,7 +9,6 @@ const userExists = async (userId) => {
   return User.exists({ uid: userId });
 };
 
-// Strict follow: POST /api/follows/follow/:uid
 router.post('/follow/:uid', authenticate, async (req, res) => {
   try {
     const { uid: followerId } = req.user;
