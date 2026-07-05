@@ -32,8 +32,11 @@ mongoose.connect(process.env.MONGO_URI)
 // Middleware
 // CORS configuration
 const allowedOrigins = [
-  'https://faith-buddies-frontend.vercel.app', 
-  'http://localhost:3000'
+  'http://localhost',
+  'http://localhost:3000',
+  'capacitor://localhost',
+  'https://faith-buddies-frontend.vercel.app',
+  'https://your-frontend-domain.com'
 ];
 
 if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
@@ -42,8 +45,7 @@ if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_UR
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow non-browser requests (like mobile) or trusted origins
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('CORS Policy: Not allowed by server'));
