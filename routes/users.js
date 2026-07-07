@@ -72,13 +72,28 @@ router.get('/profile', authenticate, async (req, res) => {
     const { uid: userId } = req.user;
 
     const user = await User.findOne({ uid: userId })
-      .select('-passwordHash -emailVerificationToken -passwordResetToken');
+      .select('-passwordHash -emailVerificationToken -passwordResetToken')
+      .lean();
 
     if (!user) {
       return res.status(404).json({ error: 'User profile not found' });
     }
 
-    res.json(user);
+    const response = {
+      uid: user.uid,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      bio: user.bio,
+      religion: user.religion,
+      followersCount: user.followersCount || 0,
+      followingCount: user.followingCount || 0,
+      postsCount: user.postsCount || 0,
+      authProvider: user.authProvider,
+      emailVerified: user.emailVerified,
+    };
+
+    res.json(response);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     res.status(500).json({ error: 'Failed to fetch user profile', details: error.message });

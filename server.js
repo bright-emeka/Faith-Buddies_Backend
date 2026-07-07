@@ -66,6 +66,7 @@ app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/user', usersRoutes); // alias for mobile frontend route expectation
 app.use('/api/posts', postsRoutes);
 app.use('/api/interactions', interactionsRoutes);
 app.use('/api/follows', followsRoutes);
