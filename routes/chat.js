@@ -48,10 +48,15 @@ router.post('/message', authenticate, async (req, res) => {
       });
     }
 
-    // Fetch user religion
+    // Fetch user profile and religion from the stored profile
     const userDoc = await User.findOne({ uid: userId }).lean();
+    if (!userDoc) {
+      return res.status(404).json({
+        error: 'User profile not found',
+      });
+    }
 
-    const religion = userDoc?.religion || 'Christian';
+    const religion = userDoc.religion || 'Other';
 
     // Fetch existing chat
     const chatDoc = await Chat.findOne({ userId }).lean();

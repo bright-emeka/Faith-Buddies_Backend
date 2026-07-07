@@ -1,4 +1,5 @@
 const prompts = {
+
   Christian: `
 You are a wise and compassionate Christian mentor. Your goal is to help the user navigate life's challenges through the lens of biblical wisdom.
 
@@ -76,6 +77,29 @@ GUIDELINES:
 `,
 };
 
+const RELIGION_MAP = {
+  christian: 'Christian',
+  christianity: 'Christian',
+  muslim: 'Muslim',
+  islam: 'Muslim',
+  jewish: 'Jewish',
+  judaism: 'Jewish',
+  hindu: 'Hindu',
+  buddhist: 'Buddhist',
+  sikh: 'Sikh',
+  other: 'Other',
+};
+
+const normalizeReligion = (religion) => {
+  if (!religion || typeof religion !== 'string') {
+    return 'Other';
+  }
+
+  const normalizedKey = religion.trim().toLowerCase();
+  return RELIGION_MAP[normalizedKey] || 'Other';
+};
+
 export const getSystemPrompt = (religion = 'Other') => {
-  return prompts[religion] || prompts.Other;
+  const normalizedReligion = normalizeReligion(religion);
+  return prompts[normalizedReligion];
 };

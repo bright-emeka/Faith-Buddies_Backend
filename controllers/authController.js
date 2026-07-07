@@ -63,6 +63,7 @@ export const register = async (req, res, next) => {
         name: user.name,
         authProvider: user.authProvider,
         emailVerified: user.emailVerified,
+        religion: user.religion,
       },
       accessToken,
       emailVerificationToken,
@@ -124,6 +125,7 @@ export const login = async (req, res, next) => {
         name: user.name,
         authProvider: user.authProvider,
         emailVerified: user.emailVerified,
+        religion: user.religion,
       },
       accessToken,
     });
