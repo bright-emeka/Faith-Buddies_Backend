@@ -3,10 +3,16 @@ import User from '../models/User.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { auth } from '../config/firebase.js';
 
+const getBearerToken = (header) => {
+  if (!header || typeof header !== 'string') return null;
+  const match = header.match(/^\s*Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : null;
+};
+
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const accessToken = req.cookies?.accessToken || (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
+    const accessToken = req.cookies?.accessToken || getBearerToken(authHeader);
 
     if (!accessToken) {
       return res.status(401).json({ error: 'Unauthorized: No token provided' });
@@ -53,7 +59,7 @@ export const authenticate = async (req, res, next) => {
 export const optionalAuthenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const accessToken = req.cookies?.accessToken || (authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null);
+    const accessToken = req.cookies?.accessToken || getBearerToken(authHeader);
 
     if (!accessToken) {
       return next();

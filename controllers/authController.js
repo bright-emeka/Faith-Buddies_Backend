@@ -40,20 +40,18 @@ export const register = async (req, res, next) => {
     const accessToken = generateAccessToken(user.uid);
     const refreshToken = generateRefreshToken(user.uid);
 
-    res.cookie('accessToken', accessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000,
       path: '/',
-    });
+    };
 
+    res.cookie('accessToken', accessToken, cookieOptions);
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
     });
 
     res.status(201).json({
@@ -102,20 +100,18 @@ export const login = async (req, res, next) => {
     const accessToken = generateAccessToken(user.uid);
     const refreshToken = generateRefreshToken(user.uid);
 
-    res.cookie('accessToken', accessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000,
       path: '/',
-    });
+    };
 
+    res.cookie('accessToken', accessToken, cookieOptions);
     res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
     });
 
     res.json({
@@ -221,7 +217,11 @@ export const resetPassword = async (req, res, next) => {
 
 export const refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken } = req.cookies;
+    const authHeader = req.headers.authorization;
+    const refreshTokenCookie = req.cookies?.refreshToken;
+    const refreshTokenBody = req.body?.refreshToken;
+    const refreshTokenHeader = authHeader?.match(/^\s*Bearer\s+(.+)$/i)?.[1]?.trim();
+    const refreshToken = refreshTokenCookie || refreshTokenBody || refreshTokenHeader || req.query?.refreshToken;
 
     if (!refreshToken) {
       return res.status(401).json({ message: 'Refresh token required' });
@@ -242,20 +242,18 @@ export const refreshToken = async (req, res, next) => {
     const newAccessToken = generateAccessToken(user.uid);
     const newRefreshToken = generateRefreshToken(user.uid);
 
-    res.cookie('accessToken', newAccessToken, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000,
       path: '/',
-    });
+    };
 
+    res.cookie('accessToken', newAccessToken, cookieOptions);
     res.cookie('refreshToken', newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
     });
 
     res.json({ accessToken: newAccessToken });

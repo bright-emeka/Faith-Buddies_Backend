@@ -10,7 +10,7 @@ router.post('/profile', authenticate, async (req, res) => {
   try {
     const { uid: userId } = req.user;
     console.log('DEBUG: Incoming profile request for Firebase UID:', userId);
-    const { name, email, bio, avatar, religion } = req.body;
+    const { content, image } = req.body;
 
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Post content cannot be empty' });

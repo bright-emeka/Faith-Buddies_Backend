@@ -20,6 +20,7 @@ router.post('/verify-email', verifyEmail);
 router.post('/forgot-password', passwordResetLimiter, forgotPassword);
 router.post('/reset-password', passwordResetLimiter, resetPassword);
 router.post('/refresh', refreshToken);
+router.get('/refresh', refreshToken);
 router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, me);
 
