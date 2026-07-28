@@ -23,7 +23,3 @@ npm install
 npm run dev
 ```
 
-## Production static frontend
-
-If this repo includes a `frontend/dist` or `frontend/build` folder, the backend will serve it automatically.
-If not, the backend still works as a standalone API service.
