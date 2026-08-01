@@ -1,31 +1,22 @@
 {
   "name": "bible-social",
   "version": "1.0.0",
-  "description": "Fullstack Social app",
+  "description": "Faith Buddies - Firebase-powered social backend",
   "type": "module",
-  "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js",
-    "start": "node server.js"
-  },
-  "dependencies": {
-    "axios": "^1.6.2",
-    "axios-retry": "^4.5.0",
-    "bcrypt": "^6.0.0",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-async-errors": "^3.1.1",
-    "express-rate-limit": "^8.5.2",
-    "firebase-admin": "^13.10.0",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.6.2"
+    "serve": "firebase emulators:start",
+    "serve:functions": "firebase emulators:start --only functions",
+    "serve:firestore": "firebase emulators:start --only firestore",
+    "serve:storage": "firebase emulators:start --only storage",
+    "deploy": "firebase deploy",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:firestore": "firebase deploy --only firestore",
+    "deploy:storage": "firebase deploy --only storage"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "firebase-tools": "^13.0.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=20"
   }
 }
