@@ -3,34 +3,37 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
-import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
+import admin from 'firebase-admin';
 import { apiLimiter } from './middleware/rateLimiter.js';
-
-import authRoutes from './routes/auth.js';
-import chatRoutes from './routes/chat.js';
-import usersRoutes from './routes/users.js';
-import postsRoutes from './routes/posts.js';
-import interactionsRoutes from './routes/interactions.js';
-import followsRoutes from './routes/follows.js';
-
-const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Load environment variables
 dotenv.config();
 
-// 🔌 2. CONNECT TO MONGO_DB ATLAS
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log('✅ MongoDB connected successfully to Faith Buddies!');
-  })
-  .catch((err) => {
-    console.error('❌ MongoDB connection error:', err.message);
-  });
+const app = express();
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-// CORS configuration
+// ----------------------------------------------------
+// 🔌 1. INITIALIZE FIREBASE ADMIN SDK
+// ----------------------------------------------------
+// Option A: Using environment variable for service account key (Recommended for Render)
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+} else {
+  // Option B: Fallback to local serviceAccountKey.json or application default
+  admin.initializeApp();
+}
+
+export const db = admin.firestore();
+export const auth = admin.auth();
+console.log('✅ Firebase Admin SDK initialized successfully!');
+
+// ----------------------------------------------------
+// 🛡️ 2. MIDDLEWARE & CORS CONFIGURATION
+// ----------------------------------------------------
 const allowedOrigins = [
   'http://localhost',
   'http://localhost:3000',
@@ -62,47 +65,57 @@ app.use(cookieParser());
 // Rate limiting
 app.use('/api', apiLimiter);
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/user', usersRoutes); // alias for mobile frontend route expectation
-app.use('/api/posts', postsRoutes);
-app.use('/api/interactions', interactionsRoutes);
-app.use('/api/follows', followsRoutes);
+// ----------------------------------------------------
+// 🚀 3. API ROUTES
+// Note: Import & update your route handlers to use Firestore/Firebase Auth
+// ----------------------------------------------------
+// import authRoutes from './routes/auth.js';
+// import chatRoutes from './routes/chat.js';
+// import usersRoutes from './routes/users.js';
+// import postsRoutes from './routes/posts.js';
+
+// app.use('/api/auth', authRoutes);
+// app.use('/api/chat', chatRoutes);
+// app.use('/api/users', usersRoutes);
+// app.use('/api/posts', postsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'Server is running', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'Server is running', 
+    database: 'Firebase Firestore',
+    timestamp: new Date().toISOString() 
+  });
 });
 
-// --- SERVE FRONTEND FROM LOCAL STANDALONE REPO ---
+// ----------------------------------------------------
+// 🌐 4. SERVE FRONTEND (IF APPLICABLE)
+// ----------------------------------------------------
 const __dirname = path.resolve();
 const frontendPath = path.join(__dirname, 'frontend');
 const distPath = path.join(frontendPath, 'dist');
 const buildPath = path.join(frontendPath, 'build');
 
-// Check which production folder exists (Vite defaults to dist)
 const staticPath = fs.existsSync(distPath) ? distPath : buildPath;
 
 if (fs.existsSync(staticPath)) {
   console.log(`✅ Production Build Found: ${staticPath}`);
   app.use(express.static(staticPath));
 
-  // Catch-all route: Essential for React Router to work on refresh
   app.get('*', (req, res) => {
     res.sendFile(path.join(staticPath, 'index.html'));
   });
 } else {
-  // Graceful logs based on environment
   if (process.env.NODE_ENV === 'production') {
-    console.log('ℹ️ Standalone Mode: No local frontend folder found. Serving API endpoints exclusively.');
+    console.log('ℹ️ Standalone Mode: Serving API endpoints exclusively.');
   } else {
-    console.log('ℹ️ Local Dev Mode: API is live. Frontend is served by Vite on a separate process.');
+    console.log('ℹ️ Local Dev Mode: API is live.');
   }
 }
 
-// Error handling middleware
+// ----------------------------------------------------
+// ⚠️ 5. ERROR HANDLING & START SERVER
+// ----------------------------------------------------
 app.use((error, req, res, next) => {
   console.error('Error:', error);
   res.status(error.status || 500).json({
@@ -110,7 +123,6 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Faith Buddies API active on port ${PORT}`);
   console.log('Environment:', process.env.NODE_ENV || 'development');
