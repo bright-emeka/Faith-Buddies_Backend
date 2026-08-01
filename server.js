@@ -4,36 +4,29 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
-import admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { apiLimiter } from './middleware/rateLimiter.js';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ----------------------------------------------------
-// 🔌 1. INITIALIZE FIREBASE ADMIN SDK
-// ----------------------------------------------------
-// Option A: Using environment variable for service account key (Recommended for Render)
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
+  initializeApp({
+    credential: cert(serviceAccount)
   });
 } else {
-  // Option B: Fallback to local serviceAccountKey.json or application default
-  admin.initializeApp();
+  initializeApp();
 }
 
-export const db = admin.firestore();
-export const auth = admin.auth();
+export const db = getFirestore();
+export const auth = getAuth();
 console.log('✅ Firebase Admin SDK initialized successfully!');
 
-// ----------------------------------------------------
-// 🛡️ 2. MIDDLEWARE & CORS CONFIGURATION
-// ----------------------------------------------------
 const allowedOrigins = [
   'http://localhost',
   'http://localhost:3000',
@@ -62,24 +55,8 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-// Rate limiting
 app.use('/api', apiLimiter);
 
-// ----------------------------------------------------
-// 🚀 3. API ROUTES
-// Note: Import & update your route handlers to use Firestore/Firebase Auth
-// ----------------------------------------------------
-// import authRoutes from './routes/auth.js';
-// import chatRoutes from './routes/chat.js';
-// import usersRoutes from './routes/users.js';
-// import postsRoutes from './routes/posts.js';
-
-// app.use('/api/auth', authRoutes);
-// app.use('/api/chat', chatRoutes);
-// app.use('/api/users', usersRoutes);
-// app.use('/api/posts', postsRoutes);
-
-// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'Server is running', 
@@ -88,9 +65,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ----------------------------------------------------
-// 🌐 4. SERVE FRONTEND (IF APPLICABLE)
-// ----------------------------------------------------
 const __dirname = path.resolve();
 const frontendPath = path.join(__dirname, 'frontend');
 const distPath = path.join(frontendPath, 'dist');
@@ -113,9 +87,6 @@ if (fs.existsSync(staticPath)) {
   }
 }
 
-// ----------------------------------------------------
-// ⚠️ 5. ERROR HANDLING & START SERVER
-// ----------------------------------------------------
 app.use((error, req, res, next) => {
   console.error('Error:', error);
   res.status(error.status || 500).json({
