@@ -2,24 +2,35 @@
 
 This repository is the standalone backend API service for Faith Buddies.
 It supports:
-- Express API routes for chat, users, posts, interactions, and follows
-- MongoDB connection via `mongoose`
-- Optional static serving of a local `frontend/dist` or `frontend/build` production bundle
-- CORS configuration for a separate frontend during development
+- Firebase Cloud Functions for API routes
+- Firestore database for data persistence
+- Firebase Storage for media files
+- Firebase Authentication for user management
 
 ## Run locally
 
-1. Copy `.env.example` to `.env`
-2. Set `MONGO_URI`, `FRONTEND_URL`, and other environment variables
+1. Ensure you have the Firebase CLI installed:
+
+```bash
+npm install -g firebase-tools
+```
+
+2. Set up your `.env` file with Firebase configuration:
+
+```bash
+cp .env.example .env
+```
+
 3. Install dependencies:
 
 ```bash
 npm install
+cd functions && npm install
 ```
 
-4. Start the backend:
+4. Start the Firebase emulator:
 
 ```bash
-npm run dev
+npm run serve
 ```
 
