@@ -128,7 +128,17 @@ export const getPost = async (req, res) => {
     const post = { id: postDoc.id, ...postDoc.data() };
 
     const authorDoc = await db.collection('users').doc(post.userId).get();
-    post.author = authorDoc.exists ? { uid: authorDoc.id, ...authorDoc.data() } : null;
+    if (authorDoc.exists) {
+      const authorData = authorDoc.data();
+      // Ensure uid matches document ID
+      if (authorData.uid !== authorDoc.id) {
+        console.warn(`Author UID mismatch: document=${authorDoc.id}, field=${authorData.uid}`);
+      }
+      post.author = { uid: authorDoc.id, ...authorData };
+    } else {
+      console.warn(`Author not found for post: userId=${post.userId}`);
+      post.author = null;
+    }
 
     const commentsSnapshot = await db.collection('posts').doc(postId).collection('comments')
       .orderBy('createdAt', 'desc')

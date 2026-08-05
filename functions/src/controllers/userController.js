@@ -17,7 +17,13 @@ export const registerUser = async (req, res) => {
     const existing = await userDoc.get();
 
     if (existing.exists) {
-      return res.status(200).json({ message: 'User already exists', user: { uid: existing.id, ...existing.data() } });
+      const userData = existing.data();
+      // Ensure uid field matches document ID
+      if (userData.uid !== uid) {
+        console.warn(`UID mismatch: document=${uid}, field=${userData.uid}. Fixing...`);
+        await userDoc.update({ uid });
+      }
+      return res.status(200).json({ message: 'User already exists', user: { uid, ...userData } });
     }
 
     const userData = {
@@ -88,8 +94,24 @@ export const syncUserProfile = async (req, res) => {
       await userRef.set(initialData);
     } else {
       // Update existing document
+      const existing = userDoc.data();
       console.log(`Syncing existing user ${uid}`);
-      await userRef.update(updateData);
+      
+      // Ensure uid matches and all required fields exist
+      const mergedData = {
+        ...existing,
+        ...updateData,
+        uid, // Force uid to match document ID
+        updatedAt: new Date(),
+      };
+      
+      // Ensure required fields exist
+      if (!mergedData.followersCount) mergedData.followersCount = 0;
+      if (!mergedData.followingCount) mergedData.followingCount = 0;
+      if (!mergedData.postsCount) mergedData.postsCount = 0;
+      if (!mergedData.authProvider) mergedData.authProvider = 'firebase';
+      
+      await userRef.set(mergedData);
     }
 
     const synced = await userRef.get();
@@ -107,11 +129,19 @@ export const getUserProfile = async (req, res) => {
 
     const userDoc = await db.collection('users').doc(requestedUid).get();
     if (!userDoc.exists) {
-      return res.status(404).json({ error: 'User not found' });
+      console.error(`User not found: ${requestedUid}`);
+      return res.status(404).json({ error: 'User not found', uid: requestedUid });
     }
 
     const data = userDoc.data();
     const { passwordHash, emailVerificationToken, passwordResetToken, ...safeData } = data;
+    
+    // Ensure uid field matches document ID
+    if (safeData.uid !== requestedUid) {
+      console.warn(`UID mismatch: document=${requestedUid}, field=${safeData.uid}. Fixing...`);
+      safeData.uid = requestedUid;
+      await userDoc.ref.update({ uid: requestedUid });
+    }
 
     res.json(safeData);
   } catch (error) {
@@ -137,12 +167,66 @@ export const searchUsers = async (req, res) => {
     const users = snapshot.docs.map((doc) => {
       const data = doc.data();
       const { passwordHash, emailVerificationToken, passwordResetToken, ...safeData } = data;
-      return { uid: doc.id, ...safeData };
+      // Ensure uid field matches document ID
+    if (safeData.uid !== doc.id) {
+      console.warn(`UID mismatch in response: document=${doc.id}, field=${safeData.uid}`);
+    }
+    return { uid: doc.id, ...safeData };
     });
 
     res.json({ users });
   } catch (error) {
     console.error('Error searching users:', error);
     res.status(500).json({ error: 'Failed to search users', details: error.message });
+  }
+};
+
+export const repairUserUids = async (req, res) => {
+  try {
+    // Verify admin (optional - you can skip auth for this in development)
+    const isAdmin = req.user?.email?.endsWith('@admin.com') || process.env.NODE_ENV === 'development';
+    
+    if (!isAdmin) {
+      return res.status(403).json({ error: 'Unauthorized: Admin only' });
+    }
+
+    console.log('🔧 Starting UID repair process...');
+    
+    const usersSnapshot = await db.collection('users').get();
+    const repairs = [];
+    let fixed = 0;
+    let checked = 0;
+
+    for (const doc of usersSnapshot.docs) {
+      checked++;
+      const data = doc.data();
+      const docId = doc.id;
+
+      // Check if uid field matches document ID
+      if (data.uid !== docId) {
+        console.warn(`🔴 UID mismatch found: docId=${docId}, uid=${data.uid}`);
+        repairs.push({
+          docId,
+          oldUid: data.uid,
+          newUid: docId,
+          name: data.name || 'Unknown',
+        });
+
+        // Fix the UID
+        await doc.ref.update({ uid: docId });
+        fixed++;
+      }
+    }
+
+    console.log(`✅ UID repair complete: checked=${checked}, fixed=${fixed}`);
+    res.json({
+      status: 'Repair complete',
+      checked,
+      fixed,
+      repairs,
+    });
+  } catch (error) {
+    console.error('Error repairing UIDs:', error);
+    res.status(500).json({ error: 'Failed to repair UIDs', details: error.message });
   }
 };

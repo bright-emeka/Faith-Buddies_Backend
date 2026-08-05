@@ -2,7 +2,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { onDocumentCreated, onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { db } from './src/config/firebase.js';
 import { authenticate } from './src/middleware/auth.js';
-import { registerUser, syncUserProfile, getUserProfile, searchUsers } from './src/controllers/userController.js';
+import { registerUser, syncUserProfile, getUserProfile, searchUsers, repairUserUids } from './src/controllers/userController.js';
 import { createPost, getFeed, getUserPosts, getPost, deletePost } from './src/controllers/postController.js';
 import { toggleLike, checkLike, addComment, getComments, deleteComment } from './src/controllers/interactionController.js';
 import { followUser, unfollowUser, toggleFollow, getFollowStatus, getFollowers, getFollowing } from './src/controllers/followController.js';
@@ -53,6 +53,9 @@ const route = (req, res) => {
     }
     if (segments[1] === 'profile' && method === 'post') {
       return authenticate(req, res, () => syncUserProfile(req, res));
+    }
+    if (segments[1] === 'repair' && method === 'post') {
+      return authenticate(req, res, () => repairUserUids(req, res));
     }
     if (segments[2] === 'profile' && method === 'get') {
       return getUserProfile(req, res);

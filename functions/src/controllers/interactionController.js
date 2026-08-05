@@ -74,7 +74,9 @@ export const addComment = async (req, res) => {
       commentsCount: (await db.collection('posts').doc(postId).get()).data()?.commentsCount + 1 || 0,
     });
 
-    res.status(201).json({ ...commentData, author: userDoc.exists ? { uid: userDoc.id, ...userDoc.data() } : null });
+    const authorData = userDoc.exists ? userDoc.data() : null;
+    const author = authorData ? { uid: userDoc.id, ...authorData } : null;
+    res.status(201).json({ ...commentData, author });
   } catch (error) {
     console.error('Error adding comment:', error);
     res.status(500).json({ error: 'Failed to add comment' });
