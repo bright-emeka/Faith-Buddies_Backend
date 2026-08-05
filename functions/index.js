@@ -34,7 +34,7 @@ const route = (req, res) => {
 
   if (segments[0] === 'auth') {
     if (segments[1] === 'register' && method === 'post') {
-      return registerUser(req, res);
+      return authenticate(req, res, () => registerUser(req, res));
     }
     if (segments[1] === 'login' && method === 'post') {
       return send(401, { error: 'Use Firebase authentication. Call register with Firebase UID.' });
