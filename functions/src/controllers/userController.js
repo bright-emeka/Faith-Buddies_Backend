@@ -125,9 +125,49 @@ export const syncUserProfile = async (req, res) => {
 
 export const getUserProfile = async (req, res) => {
   try {
-    const requestedUid = req.params.uid || req.user.uid;
+    const requestedUid = req.params.uid || req.user?.uid;
+    
+    if (!requestedUid) {
+      return res.status(400).json({ error: 'UID is required' });
+    }
 
-    const userDoc = await db.collection('users').doc(requestedUid).get();
+    let userDoc = await db.collection('users').doc(requestedUid).get();
+    
+    // If user not found and this is an authenticated request for their own profile
+    if (!userDoc.exists && req.user && req.user.uid === requestedUid) {
+      console.log(`Profile missing for authenticated user ${requestedUid}. Auto-creating...`);
+      
+      // Import admin auth to get user details
+      const { auth } = require('../config/firebase.js');
+      
+      try {
+        const firebaseUser = await auth().getUser(requestedUid);
+        
+        const profileData = {
+          uid: requestedUid,
+          email: firebaseUser.email || '',
+          name: firebaseUser.displayName || 'New Believer',
+          avatar: firebaseUser.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(firebaseUser.displayName || 'New Believer')}&background=random`,
+          bio: 'Faithful believer sharing wisdom and inspiration',
+          religion: 'Christian',
+          authProvider: 'firebase',
+          emailVerified: firebaseUser.emailVerified || false,
+          followersCount: 0,
+          followingCount: 0,
+          postsCount: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        await db.collection('users').doc(requestedUid).set(profileData);
+        console.log(`✅ Auto-created profile for ${requestedUid}`);
+        return res.status(201).json(profileData);
+      } catch (authError) {
+        console.error(`Failed to auto-create profile for ${requestedUid}:`, authError);
+        return res.status(404).json({ error: 'User not found', uid: requestedUid });
+      }
+    }
+    
     if (!userDoc.exists) {
       console.error(`User not found: ${requestedUid}`);
       return res.status(404).json({ error: 'User not found', uid: requestedUid });
@@ -228,5 +268,94 @@ export const repairUserUids = async (req, res) => {
   } catch (error) {
     console.error('Error repairing UIDs:', error);
     res.status(500).json({ error: 'Failed to repair UIDs', details: error.message });
+  }
+};
+
+export const migrateFirebaseUsers = async (req, res) => {
+  try {
+    console.log('Starting Firebase Auth users migration...');
+    
+    const { auth } = require('../config/firebase.js');
+    
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+    const migrations = [];
+    const errors = [];
+
+    // Get all users from Firebase Auth (paginated)
+    let nextPageToken = undefined;
+    let totalProcessed = 0;
+
+    do {
+      const result = await auth().listUsers(100, nextPageToken);
+      
+      for (const user of result.users) {
+        totalProcessed++;
+        try {
+          const userDoc = await db.collection('users').doc(user.uid).get();
+          
+          if (userDoc.exists) {
+            // User already has a Firestore document, skip
+            skipped++;
+            continue;
+          }
+
+          // Create missing Firestore document
+          const profileData = {
+            uid: user.uid,
+            email: user.email || '',
+            name: user.displayName || 'New Believer',
+            avatar: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || 'New Believer')}&background=random`,
+            bio: 'Faithful believer sharing wisdom and inspiration',
+            religion: 'Christian',
+            authProvider: user.providerData[0]?.providerId || 'firebase',
+            emailVerified: user.emailVerified || false,
+            followersCount: 0,
+            followingCount: 0,
+            postsCount: 0,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          await db.collection('users').doc(user.uid).set(profileData);
+          created++;
+          migrations.push({
+            uid: user.uid,
+            email: user.email,
+            name: user.displayName,
+            status: 'created',
+          });
+          console.log(`✅ Created profile for ${user.uid} (${user.email})`);
+        } catch (error) {
+          failed++;
+          errors.push({
+            uid: user.uid,
+            email: user.email,
+            error: error.message,
+          });
+          console.error(`❌ Failed to create profile for ${user.uid}:`, error);
+        }
+      }
+
+      nextPageToken = result.pageToken;
+    } while (nextPageToken);
+
+    console.log(`✅ Migration complete: created=${created}, skipped=${skipped}, failed=${failed}, total=${totalProcessed}`);
+    
+    res.json({
+      status: 'Migration complete',
+      summary: {
+        totalProcessed,
+        created,
+        skipped,
+        failed,
+      },
+      migrations,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error('Error migrating Firebase users:', error);
+    res.status(500).json({ error: 'Failed to migrate Firebase users', details: error.message });
   }
 };
